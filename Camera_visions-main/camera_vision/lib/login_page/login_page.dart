@@ -167,7 +167,7 @@ class LoginPageState extends State<LoginPage> {
                                   context,
                                   MaterialPageRoute(
                                       builder: (context) =>
-                                          HomePage(title: "Camera Vision")));
+                                          TfliteHome()));
                             } else {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(

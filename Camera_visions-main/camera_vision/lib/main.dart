@@ -19,27 +19,33 @@
 //     );
 //   }
 // }
+import 'dart:async';
 import 'dart:io';
-
+import 'dart:math';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:image/image.dart' as img;
+
 import 'package:tflite/tflite.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:image/image.dart' as img;
 
 void main() {
   runApp(MyApp());
 }
 
+const String mobile = "MobileNet";
 const String ssd = "SSD MobileNet";
 const String yolo = "Tiny YOLOv2";
+const String deeplab = "DeepLab";
+const String posenet = "PoseNet";
 
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       theme: ThemeData(
-        primarySwatch: Colors.green,
+        primarySwatch: Colors.amber,
       ),
       debugShowCheckedModeBanner: false,
       home: TfliteHome(),
@@ -74,34 +80,79 @@ class _TfliteHomeState extends State<TfliteHome> {
     });
   }
 
-  loadModel() async {
+  Future loadModel() async {
     Tflite.close();
     try {
       String res;
-      if (_model == yolo) {
-        res = await Tflite.loadModel(
-          model: "assets/tflite/yolov2_tiny.tflite",
-          labels: "assets/tflite/yolov2_tiny.txt",
-        );
-      } else {
-        res = await Tflite.loadModel(
-          model: "assets/tflite/ssd_mobilenet.tflite",
-          labels: "assets/tflite/ssd_mobilenet.txt",
-        );
+      switch (_model) {
+        case yolo:
+          res = await Tflite.loadModel(
+            model: "assets/yolov2_tiny.tflite",
+            labels: "assets/yolov2_tiny.txt",
+            // useGpuDelegate: true,
+          );
+          break;
+        case ssd:
+          res = await Tflite.loadModel(
+            model: "assets/ssd_mobilenet.tflite",
+            labels: "assets/ssd_mobilenet.txt",
+            // useGpuDelegate: true,
+          );
+          break;
+        case deeplab:
+          res = await Tflite.loadModel(
+            model: "assets/deeplabv3_257_mv_gpu.tflite",
+            labels: "assets/deeplabv3_257_mv_gpu.txt",
+            // useGpuDelegate: true,
+          );
+          break;
+        case posenet:
+          res = await Tflite.loadModel(
+            model: "assets/posenet_mv1_075_float_from_checkpoints.tflite",
+            // useGpuDelegate: true,
+          );
+          break;
+        default:
+          res = await Tflite.loadModel(
+            model: "assets/mobilenet_v1_1.0_224.tflite",
+            labels: "assets/mobilenet_v1_1.0_224.txt",
+            // useGpuDelegate: true,
+          );
       }
       print(res);
     } on PlatformException {
-      print("Failed to load the model");
+      print('Failed to load model.');
     }
   }
+  // loadModel() async {
+  //   Tflite.close();
+  //   try {
+  //     String res;
+  //     if (_model == yolo) {
+  //       res = await Tflite.loadModel(
+  //         model: "assets/tflite/yolov2_tiny.tflite",
+  //         labels: "assets/tflite/yolov2_tiny.txt",
+  //       );
+  //     } else {
+  //       res = await Tflite.loadModel(
+  //         model: "assets/tflite/ssd_mobilenet.tflite",
+  //         labels: "assets/tflite/ssd_mobilenet.txt",
+  //       );
+  //     }
+  //     print(res);
+  //   } on PlatformException {
+  //     print("Failed to load the model");
+  //   }
+  // }
 
   Future selectFromImagePicker() async {
-    var image = await ImagePicker.pickImage(source: ImageSource.gallery);
+    var image = await ImagePicker().getImage(source: ImageSource.gallery);
     if (image == null) return;
     setState(() {
+      var pickedImage = File(image.path);
       _busy = true;
+      predictImage(pickedImage);
     });
-    predictImage(image);
   }
 
   predictImage(File image) async {
@@ -158,7 +209,7 @@ class _TfliteHomeState extends State<TfliteHome> {
     double factorX = screen.width;
     double factorY = _imageHeight / _imageWidth * screen.width;
 
-    Color blue = Colors.red;
+    Color blue = Colors.teal;
 
     return _recognitions.map((re) {
       return Positioned(
@@ -188,7 +239,6 @@ class _TfliteHomeState extends State<TfliteHome> {
   @override
   Widget build(BuildContext context) {
     Size size = MediaQuery.of(context).size;
-
     List<Widget> stackChildren = [];
 
     stackChildren.add(
@@ -215,6 +265,7 @@ class _TfliteHomeState extends State<TfliteHome> {
 
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: Colors.amber,
         title: Text("Object Detection"),
       ),
       floatingActionButton: FloatingActionButton(
